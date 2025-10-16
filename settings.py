@@ -43,4 +43,3 @@ CTRL2_G_CONFIG = 0x50
 
 # Sensitivity Factor for +/- 250 dps range (in LSB/dps)
 SENSITIVITY_GYRO_250DPS = 114.28
-

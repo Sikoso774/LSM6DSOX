@@ -108,7 +108,7 @@ class LSM6DSOX_IMU:
             Exception: If the sensor has not been successfully initialized.
         """
         if not self._is_initialized:
-            raise Exception("Sensor must be initialized before reading data.")
+            raise Exception('Sensor must be initialized before reading data')
             
         raw_x, raw_y, raw_z = self._read_raw_data(OUT_XL_L)
         
