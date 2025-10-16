@@ -8,7 +8,7 @@ if __name__ == "__main__":
         if not app.initialize():
             sys.exit(1)
         
-        app.run()
+        app.run(0.5)
 
     finally:
         app.cleanup()

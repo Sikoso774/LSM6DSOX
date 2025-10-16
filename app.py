@@ -1,7 +1,8 @@
 import sys
 import time
-from lsm6dsox import LSM6DSOX_IMU
-from settings import I2C_BUS_NUM
+from driver.lsm6dsox import LSM6DSOX_IMU
+from driver.settings import I2C_BUS_NUM
+from driver.complementary_filter import ComplementaryFilter
 
 class IMU_Application:
     """
@@ -11,13 +12,17 @@ class IMU_Application:
     and proper cleanup of system resources (I2C bus).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes the application and creates the IMU sensor object.
         """
+        # Sensor instantiation
         self.sensor = LSM6DSOX_IMU(bus_num=I2C_BUS_NUM)
+        
+        # Complementary Filter instance
+        self.filter = ComplementaryFilter()
 
-    def initialize(self):
+    def initialize(self) -> bool:
         """
         Initializes the sensor hardware and configuration via the LSM6DSOX_IMU class.
 
@@ -27,7 +32,7 @@ class IMU_Application:
         print("Initializing LSM6DSOX IMU...")
         return self.sensor.initialize()
 
-    def run(self, delay_s=0.1):
+    def run(self, delay_s=0.1) -> None:
         """
         Starts the main loop to continuously read and print IMU data.
 
@@ -43,12 +48,27 @@ class IMU_Application:
 
         print(f"\nStarting IMU reading loop (delay={delay_s}s, Press Ctrl+C to stop)...")
         
+        # Variable to track time elapsed (Delta Time)
+        last_time = time.time()
+        
         try:
             while True:
-                ax, ay, az = self.sensor.get_acceleration_g()
-                gx, gy, gz = self.sensor.get_angular_rate_dps()
+                current_time = time.time()
+                dt = current_time - last_time 
+                last_time = current_time
                 
-                print(f"Accel (g): X={ax:+.3f}, Y={ay:+.3f}, Z={az:+.3f} | Gyro (dps): X={gx:+.3f}, Y={gy:+.3f}, Z={gz:+.3f}")
+                # 1. Read Raw Data
+                accel_data = self.sensor.get_acceleration_g() # (ax, ay, az)
+                gyro_data = self.sensor.get_angular_rate_dps() # (gx, gy, gz)
+                
+                # 2. Update Roll and Pitch using the Complementary Filter (Fusion)
+                roll_deg, pitch_deg = self.filter.update_roll_pitch(accel_data, gyro_data, dt)
+                
+                # 3. Update Yaw (Simple integration)
+                yaw_deg = self.filter.update_yaw(gyro_data[2], dt) # gyro_data[2] is Gz
+                
+                # 4. Display all data
+                print(f"Accel (g): X={accel_data[0]:+.3f}, Y={accel_data[1]:+.3f}, Z={accel_data[2]:+.3f} | Gyro (dps): X={gyro_data[0]:+.3f}, Y={gyro_data[1]:+.3f}, Z={gyro_data[2]:+.3f} | Fused R/P/Y (deg): R={roll_deg:+.1f}, P={pitch_deg:+.1f}, Y={yaw_deg:+.1f}")
                 
                 time.sleep(delay_s)
 
@@ -58,7 +78,8 @@ class IMU_Application:
         except Exception as e:
             print(f"\nAn unexpected error occurred during the loop: {e}")
 
-    def cleanup(self):
+
+    def cleanup(self) -> None:
         """
         Closes the I2C bus and performs final application shutdown.
         """

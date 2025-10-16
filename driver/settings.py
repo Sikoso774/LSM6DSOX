@@ -19,3 +19,4 @@ SENSITIVITY_ACCEL_2G = 16384.0 # Sensitivity Factor for +/- 2g range (in LSB/g)
 # --- Gyroscope Specific Configuration (26 Hz, +/-250dps) ---
 CTRL2_G_CONFIG = 0x50          # Configuration Value: 26 Hz ODR, +/-250dps FS (0x50)
 SENSITIVITY_GYRO_250DPS = 114.28 # Sensitivity Factor for +/- 250 dps range (in LSB/dps)
+

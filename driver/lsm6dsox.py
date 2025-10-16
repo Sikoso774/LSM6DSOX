@@ -1,6 +1,8 @@
 from smbus2 import SMBus
 import time
-from settings import *
+import math
+from typing import Tuple
+from driver.settings import *
 
 class LSM6DSOX_IMU:
     """
@@ -11,7 +13,7 @@ class LSM6DSOX_IMU:
     data (g-force and degrees per second)..
     """
     
-    def __init__(self, bus_num=I2C_BUS_NUM):
+    def __init__(self, bus_num=I2C_BUS_NUM) -> None:
         """
         Initializes the LSM6DSOX_IMU instance.
 
@@ -22,7 +24,7 @@ class LSM6DSOX_IMU:
         self.bus = None
         self._is_initialized = False
     
-    def __del__(self):
+    def __del__(self) -> None:
         """
         Destructor: Ensures the I2C bus is closed when the object is deleted.
         """
@@ -30,7 +32,7 @@ class LSM6DSOX_IMU:
             self.bus.close()
             print("I2C bus closed.")
 
-    def initialize(self):
+    def initialize(self) -> bool:
         """
         Opens the I2C bus, performs a soft reset, verifies the chip ID (0x6C), 
         and configures both the Accelerometer and Gyroscope.
@@ -70,28 +72,25 @@ class LSM6DSOX_IMU:
                 self.bus.close()
             return False
     
-
-    def _read_raw_data(self, start_reg):
-        # Read 6 consecutive bytes from the specified register
+    def _read_raw_data(self, start_reg) -> Tuple[float, float, float]:
         data = self.bus.read_i2c_block_data(LSM6DSOX_ADDR, start_reg, 6)
         
-        # Combine the Low and High bytes (L + H*256)
         raw_x = (data[1] << 8 | data[0])
         raw_y = (data[3] << 8 | data[2])
         raw_z = (data[5] << 8 | data[4])
         
-        # Convert the unsigned 16-bit value to a signed 16-bit value (Two's Complement)
+        # Convert to signed 16-bit value (Two's Complement)
         if raw_x > 32767:
             raw_x -= 65536
         if raw_y > 32767:
             raw_y -= 65536
-        if raw_z > 32767: # CORRECTION: c'était 'raw_y' ici aussi, corrigé en 'raw_z'
+        if raw_z > 32767: 
             raw_z -= 65536
         
         return raw_x, raw_y, raw_z
 
-    def get_acceleration_g(self):
-       """
+    def get_acceleration_g(self) -> Tuple[float, float, float]:
+        """
         Reads raw data from the Accelerometer and converts it to g-force values.
 
         The conversion uses the SENSITIVITY_ACCEL_2G constant defined in settings.py.
@@ -113,7 +112,7 @@ class LSM6DSOX_IMU:
         
         return accel_x, accel_y, accel_z
     
-    def get_angular_rate_dps(self):
+    def get_angular_rate_dps(self) -> Tuple[float, float, float]:
         """
         Reads raw data from the Gyroscope and converts it to degrees per second (dps).
 
@@ -135,3 +134,33 @@ class LSM6DSOX_IMU:
         angular_rate_z = raw_z / SENSITIVITY_GYRO_250DPS
         
         return angular_rate_x, angular_rate_y, angular_rate_z
+
+    def get_roll_pitch_angle(self) -> Tuple[float, float]:
+        """
+        Calculates the static Roll and Pitch angles in degrees using Accelerometer data.
+        
+        Note: These angles are reliable only when the sensor is static.
+
+        Returns:
+            tuple: (roll, pitch) in degrees.
+        """
+        if not self._is_initialized:
+            raise Exception("Sensor must be initialized before reading data.")
+            
+        # 1. Read accelerations in g
+        ax, ay, az = self.get_acceleration_g()
+
+        # 2. Calculate Roll (rotation around X-axis) in radians
+        # Formula: atan2(Ay, Az)
+        roll_rad = math.atan2(ay, az)
+        
+        # 3. Calculate Pitch (rotation around Y-axis) in radians
+        # Formula: atan2(-Ax, sqrt(Ay^2 + Az^2))
+        pitch_rad = math.atan2(-ax, math.sqrt(ay*ay + az*az))
+
+        # 4. Convert Radians to Degrees
+        roll_deg = math.degrees(roll_rad)
+        pitch_deg = math.degrees(pitch_rad)
+        
+        return roll_deg, pitch_deg
+
