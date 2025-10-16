@@ -11,8 +11,7 @@ class LSM6DSOX_IMU:
     data (g-force and degrees per second)..
     """
     
-
-    def __init__(self, bus_num=I2C_BUS_NUM): # Utilisation de la constante par défaut
+    def __init__(self, bus_num=I2C_BUS_NUM):
         """
         Initializes the LSM6DSOX_IMU instance.
 
@@ -46,24 +45,19 @@ class LSM6DSOX_IMU:
             return True
             
         try:
-            # 1. Open the I2C Bus
             self.bus = SMBus(self.bus_num)
-
-            # 2. Verify communication (WHO_AM_I)
             device_id = self.bus.read_byte_data(LSM6DSOX_ADDR, WHO_AM_I_REG)
-            # ... (vérification de l'ID inchangée) ...
             print(f"LSM6DSOX IMU detected. ID : {device_id:#x}")
+            if device_id != WHO_AM_I_VALUE:
+                raise IOError(f"LSM6DSOX ID mismatch. Expected: {WHO_AM_I_VALUE:#x}, Read: {device_id:#x}")
 
-            # 3. NOUVEAU : Soft Reset pour s'assurer que le capteur est propre
             print("Applying soft reset...")
             self.bus.write_byte_data(LSM6DSOX_ADDR, CTRL3_C_REG, CTRL3_C_SW_RESET)
-            time.sleep(0.05) # Attendre que le reset soit effectué (typiquement 50ms suffisent)
+            time.sleep(0.05)
 
-            # 4. Configure the Accelerometer 
             self.bus.write_byte_data(LSM6DSOX_ADDR, CTRL1_XL_REG, CTRL1_XL_CONFIG)
             print("Accelerometer configured (26 Hz, +/-2g).")
             
-            # 5. Configure the Gyroscope 
             self.bus.write_byte_data(LSM6DSOX_ADDR, CTRL2_G_REG, CTRL2_G_CONFIG)
             print("Gyroscope configured (26 Hz, +/-250dps).")
             
@@ -78,20 +72,21 @@ class LSM6DSOX_IMU:
     
 
     def _read_raw_data(self, start_reg):
-        # Start reading from the specified register and read 6 consécutive bytes
+        # Read 6 consecutive bytes from the specified register
         data = self.bus.read_i2c_block_data(LSM6DSOX_ADDR, start_reg, 6)
         
-        # Combne the Low and High bytes (L + H*256)
+        # Combine the Low and High bytes (L + H*256)
         raw_x = (data[1] << 8 | data[0])
         raw_y = (data[3] << 8 | data[2])
         raw_z = (data[5] << 8 | data[4])
         
+        # Convert the unsigned 16-bit value to a signed 16-bit value (Two's Complement)
         if raw_x > 32767:
             raw_x -= 65536
         if raw_y > 32767:
             raw_y -= 65536
-        if raw_y > 32767:
-            raw_y -= 65536
+        if raw_z > 32767: # CORRECTION: c'était 'raw_y' ici aussi, corrigé en 'raw_z'
+            raw_z -= 65536
         
         return raw_x, raw_y, raw_z
 
@@ -112,8 +107,6 @@ class LSM6DSOX_IMU:
             
         raw_x, raw_y, raw_z = self._read_raw_data(OUT_XL_L)
         
-        # Convert raw values to 'g' by dividing by the sensitivity factor
-        # Utilisation de la constante importée
         accel_x = raw_x / SENSITIVITY_ACCEL_2G
         accel_y = raw_y / SENSITIVITY_ACCEL_2G
         accel_z = raw_z / SENSITIVITY_ACCEL_2G
@@ -135,10 +128,8 @@ class LSM6DSOX_IMU:
         if not self._is_initialized:
             raise Exception("Sensor must be initialized before reading data.")
             
-        # Appel à la méthode refactorisée avec le registre du gyroscope
         raw_x, raw_y, raw_z = self._read_raw_data(OUT_GYRO_L)
         
-        # Convert raw values to 'dps' 
         angular_rate_x = raw_x / SENSITIVITY_GYRO_250DPS
         angular_rate_y = raw_y / SENSITIVITY_GYRO_250DPS
         angular_rate_z = raw_z / SENSITIVITY_GYRO_250DPS

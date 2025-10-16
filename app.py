@@ -1,6 +1,7 @@
+import sys
+import time
 from lsm6dsox import LSM6DSOX_IMU
 from settings import I2C_BUS_NUM
-import time
 
 class IMU_Application:
     """
@@ -44,11 +45,9 @@ class IMU_Application:
         
         try:
             while True:
-                # Lecture des données via la classe du capteur
                 ax, ay, az = self.sensor.get_acceleration_g()
                 gx, gy, gz = self.sensor.get_angular_rate_dps()
                 
-                # Affichage des données
                 print(f"Accel (g): X={ax:+.3f}, Y={ay:+.3f}, Z={az:+.3f} | Gyro (dps): X={gx:+.3f}, Y={gy:+.3f}, Z={gz:+.3f}")
                 
                 time.sleep(delay_s)
@@ -64,4 +63,4 @@ class IMU_Application:
         Closes the I2C bus and performs final application shutdown.
         """
         del self.sensor 
-        print("Cleanup complete. Application exit.")  
+        print("Cleanup complete. Application exit.")
