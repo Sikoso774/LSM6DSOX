@@ -163,4 +163,3 @@ class LSM6DSOX_IMU:
         pitch_deg = math.degrees(pitch_rad)
         
         return roll_deg, pitch_deg
-

@@ -68,7 +68,8 @@ class IMU_Application:
                 yaw_deg = self.filter.update_yaw(gyro_data[2], dt) # gyro_data[2] is Gz
                 
                 # 4. Display all data
-                print(f"Accel (g): X={accel_data[0]:+.3f}, Y={accel_data[1]:+.3f}, Z={accel_data[2]:+.3f} | Gyro (dps): X={gyro_data[0]:+.3f}, Y={gyro_data[1]:+.3f}, Z={gyro_data[2]:+.3f} | Fused R/P/Y (deg): R={roll_deg:+.1f}, P={pitch_deg:+.1f}, Y={yaw_deg:+.1f}")
+                print(f"Accel (g): X={accel_data[0]:+.3f}, Y={accel_data[1]:+.3f}, Z={accel_data[2]:+.3f} | Gyro (dps): X={gyro_data[0]:+.3f}, Y={gyro_data[1]:+.3f}, Z={gyro_data[2]:+.3f}")
+                # print(f"| Fused R/P/Y (deg): R={roll_deg:+.1f}, P={pitch_deg:+.1f}, Y={yaw_deg:+.1f}")
                 
                 time.sleep(delay_s)
 
