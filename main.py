@@ -1,6 +1,6 @@
 # main.py
 import sys
-from app import IMU_Application
+from driver.app import IMU_Application
 
 if __name__ == "__main__":
     app = IMU_Application()
