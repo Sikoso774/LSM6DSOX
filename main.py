@@ -1,3 +1,4 @@
+# main.py
 import sys
 from app import IMU_Application
 
